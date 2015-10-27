@@ -1,10 +1,26 @@
-
+#include <string.h>
+#include <stdlib.h>
 #include "v4l2_use.h"
 #include "lcd.h"
 
 
-int main()
+int main(int argc,char *argv[])
 {
+	printf("jpeg compress like this :"
+			"use  ./jpegAPP quality[0--100] \n");
+
+	//char *filename = malloc(50);
+	char filename[50] = "compress_";
+	if(2 == argc){
+		strcat(filename,argv[1]);
+		strcat(filename,".jpeg");
+		puts(filename);
+	}
+	else{
+		printf("the argv[1] is not the quality parameter");
+	}
+
+	int quality = atoi(argv[1]);
 
 	unsigned short port = 8000;//udp 初始化
 	char *ipstr = "192.168.1.111";
@@ -32,7 +48,7 @@ int main()
 	//int numb;
 	//for (numb=0; numb<5; ++numb)
 	{	
-		v4l2_use.read();
+		v4l2_use.read( filename, quality);
 		//v4l2_use.write(lcd_dev_parmet, v4l2_use.dest_buffers, DEST_IMG_SIZE);
 		
 		//send_pic(server_so,addr);	

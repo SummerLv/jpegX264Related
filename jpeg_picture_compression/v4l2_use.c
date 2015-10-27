@@ -174,7 +174,7 @@ static int v4l2_open(char* dev_name)
 //************************************************************************************
 
 
-static int v4l2_capture_rgb(void)
+static int v4l2_capture_rgb(char *filename, int quality)
 {
 	enum v4l2_buf_type type;
 	type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -199,11 +199,11 @@ static int v4l2_capture_rgb(void)
 		//exit(EXIT_FAILURE);
 	}
 	
-	read_frame(); //执行read_frame() 函数
+	read_frame(filename, quality); //执行read_frame() 函数
 }
 
  int numb;
-static int read_frame(void)
+static int read_frame(char *filename, int quality)
 {
 	struct v4l2_buffer buf;
  	int ret =0;
@@ -237,7 +237,9 @@ static int read_frame(void)
 	//*****test yuv
 	convert_yuv_to_rgb_buffer(yuyv_buffers0[buf.index].start, v4l2_use.rgb_buffers, WIDTH, HEIGHT);
 	//printf("$$$$$$$   width:\t%d\theight:\t%d\t\n",WIDTH,HEIGHT);
-	v4l2_use.jpeg_size = rgb_to_jpeg_v2(v4l2_use.rgb_buffers, &v4l2_use.jpeg,"yasuo.jpeg",10); 
+		//  @1027
+		//  add control parameters here
+	v4l2_use.jpeg_size = rgb_to_jpeg_v2(v4l2_use.rgb_buffers, &v4l2_use.jpeg,filename,quality);
 	printf("v4l2_use.jpeg_size:\t %d\n", v4l2_use.jpeg_size); 
 	//*****
 

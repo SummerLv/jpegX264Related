@@ -67,7 +67,8 @@ typedef struct v4l2 {
         long jpeg_size;
 
         void (*open)(void);
-        void (*read)(void);
+        // @1027
+        void (*read)(char *filename, int quality);
         void (*write)(str_lcd *lcdone, char *buf, int size);
         void (*close)(str_lcd *lcdone);
 } V4L2;
@@ -83,8 +84,10 @@ static void v4l2_lcd_close(str_lcd *lcdone);
 
 static void v4l2_lcd_init(void);
 static int v4l2_open(char* dev_name);
-static int v4l2_capture_rgb(void);
-static int read_frame(void);
+// @1027
+static int v4l2_capture_rgb(char *filename, int qualit);
+// @1027
+static int read_frame(char *filename, int quality);
 static void v4l2_close(void);
 
 extern V4L2 v4l2_use;
