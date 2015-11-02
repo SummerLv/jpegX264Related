@@ -2,13 +2,34 @@
 #include <stdlib.h>
 #include "v4l2_use.h"
 #include "lcd.h"
+#include <string.h>
+
+
+#ifndef TCP_SEND
+#define TCP_SEND 1
+#endif
+
+#define BUFFER_SIZE		1024
+unsigned char sendBuffer[BUFFER_SIZE] = {0};
+
+//   SEND FUNCTION ---- UDP
+int  sendFileName(const char * filename, int filenameLen ,int sockfd, struct sockaddr_in serverAddr);
+int  sendPicture(const char * filename ,int sockfd, struct sockaddr_in serverAddr);
+//   SEND FUNCTION --- TCP
+int  sendFileName_TCP(const char * filename, int filenameLen ,int sockfd);
+int  sendPicture_TCP(const char * filename ,int sockfd);
 
 
 int main(int argc,char *argv[])
 {
-	printf("jpeg compress like this :"
-			"use  ./jpegAPP quality[0--100] \n");
+	// printf("jpeg compress like this :"
+	// 		"use  ./jpegAPP quality[0--100] \n");
+	
 
+	/*****************************************************
+	*  init the filename to store the compressed picture
+	******************************************************
+	*/
 	//char *filename = malloc(50);
 	char filename[50] = "compress_";
 	if(2 == argc){
@@ -22,60 +43,171 @@ int main(int argc,char *argv[])
 
 	int quality = atoi(argv[1]);
 
-	unsigned short port = 8000;//udp 初始化
-	char *ipstr = "192.168.1.111";
+	/*******************************
+	*  init the udpSend
+	********************************
+	*/
+	unsigned short port = 6666;//udp 初始化
+	char *ipstr = "192.168.5.166";
 	
-	int server_so = socket(PF_INET, SOCK_DGRAM, 0);
-	if(0 > server_so)
-	{
-		perror("socket");
+	int sockfd = socket(PF_INET, SOCK_DGRAM, 0);
+	if(0 > sockfd){
+		perror("socket()");
+		return -1;
+	}
+
+	int sockfdTCP = socket(PF_INET , SOCK_STREAM, 0);
+	if (sockfdTCP < 0){
+		perror("TCP socket()");
 		return -1;
 	}
 	
-	struct sockaddr_in addr = {
+	struct sockaddr_in serverAddr = {
 		.sin_family = PF_INET,
 		.sin_port = htons(port),
 		.sin_addr.s_addr = inet_addr(ipstr),
 	};	
-	memset(addr.sin_zero, 0, sizeof(addr.sin_zero));	
-	printf("----------- connected --------------\n");
+	memset(serverAddr.sin_zero, 0, sizeof(serverAddr.sin_zero));	
+	printf("----------- udp parameter inited --------------\n");
+	
+	
 
-	
+	/*===================================================
+	*  start to fecth the destined picturn & comprass
+	*=====================================================*/
+
 	v4l2_use.open();
+
+	v4l2_use.read( filename, quality);
+	printf("compressed jpeg.picture -------- waiting for  sending \n");
 	
-	int times ;
-	for(times = 0; times<1; ++times)
-	//int numb;
-	//for (numb=0; numb<5; ++numb)
-	{	
-		v4l2_use.read( filename, quality);
-		//v4l2_use.write(lcd_dev_parmet, v4l2_use.dest_buffers, DEST_IMG_SIZE);
-		
-		//send_pic(server_so,addr);	
-		
-		printf("---------------------------\n");
+	// *******  send fileName & picture data to the UDP Server ******
+	// sendFileName( filename,  strlen(filename), sockfd, serverAddr);
+	// sendPicture( filename, sockfd, serverAddr);
+
+	// send fileName & picture data to the TCP Server
+	if( connect(sockfdTCP, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0){
+		perror("connect ()");
 	}
+	printf("----------- TCP connect --------------\n");
+
+	sendFileName_TCP( filename,  strlen(filename), sockfdTCP);
+	sendPicture_TCP( filename, sockfdTCP);
+
+
 	v4l2_use.close(lcd_dev_parmet);	
 	
 
   	
 }
 
-int send_pic(int so,struct sockaddr_in addr)
-{	
-    socklen_t len = sizeof(struct sockaddr_in);	
-	int open_fd = 0;
 
-	struct stat bf;
-	char str[50]={0};
+
+/*
+*	@para  filename    : send file name
+*   @para  filenameLen : file name length
+*   @return  		   : succecced send bytes
+*/
+int  sendFileName(const char * filename, int filenameLen,
+				   int sockfd, struct sockaddr_in serverAddr
+				){
+	printf("in the function sendFileName\n");
+	socklen_t addrLen = sizeof(struct sockaddr_in);
+	int sendSize = sendto(sockfd, filename, filenameLen, 0, 
+						(struct sockaddr *) &serverAddr, addrLen);
+	if ( sendSize <= 0 ){
+		perror("sendFileName");
+	}
+
+	return sendSize;
+}
+/*
+*	@para  filename    : send file name
+*   @para  ...........
+*   @return  		   : succecced send bytes
+*/
+int  sendPicture(const char * filename, int sockfd, struct sockaddr_in serverAddr){
 	
-	int lll = sendto(so, v4l2_use.jpeg, v4l2_use.jpeg_size, 0, (struct sockaddr *) &addr, len);
-	bzero(str,50);
-	
+	printf("in the function sendPicture\n");
+
+	int sendSize = 0;
+	int readSize = 0;
+
+	socklen_t addrLen = sizeof(struct sockaddr_in);
+	memset(sendBuffer, 0, BUFFER_SIZE);
+	FILE *fp = fopen(filename, "r");
+	printf("file transfer in UDP is going");
+	while((readSize = fread(sendBuffer, 1, BUFFER_SIZE,fp)) > 0){
+		printf("fread: readSize     %d      Byte\n",readSize);
+		sendSize = sendto(sockfd, sendBuffer, readSize, 0, 
+						(struct sockaddr *) &serverAddr, addrLen);
+		if( sendSize < 0){
+			perror("send size < 0");
+			exit(0);
+		}
+		// 是否需要加
+		 memset(sendBuffer, 0, BUFFER_SIZE);
+	}
+	printf("out of the while  in  sendPicture()\n");
+	fclose(fp);
+
+	sendto(sockfd, "SENDFINISHED", strlen("SENDFINISHED"), 0, 
+		     (struct sockaddr *) &serverAddr, addrLen);
+
+	printf("file transfer in UDP is closing");
 
 }
 
 
+//================================================================================
+/*
+*	@para  filename    : send file name
+*   @para  filenameLen : file name length
+*   @return  		   : succecced send bytes
+*/
+int  sendFileName_TCP(const char * filename, int filenameLen,int sockfd){
+	printf("in the function sendFileName\n");
+	socklen_t addrLen = sizeof(struct sockaddr_in);
+	int sendSize = send(sockfd, filename, filenameLen, 0);
+	if ( sendSize <= 0 ){
+		perror("sendFileName");
+	}
 
+	return sendSize;
+}
+/*
+*	@para  filename    : send file name
+*   @para  ...........
+*   @return  		   : succecced send bytes
+*/
+int  sendPicture_TCP(const char * filename, int sockfd){
+	
+	printf("in the function sendPicture\n");
+
+	int sendSize = 0;
+	int readSize = 0;
+
+	socklen_t addrLen = sizeof(struct sockaddr_in);
+	memset(sendBuffer, 0, BUFFER_SIZE);
+	FILE *fp = fopen(filename, "r");
+	printf("file transfer in UDP is going");
+	while((readSize = fread(sendBuffer, 1, BUFFER_SIZE,fp)) > 0){
+		printf("fread: readSize     %d      Byte\n",readSize);
+		sendSize = send(sockfd, sendBuffer, readSize, 0);
+		if( sendSize < 0){
+			perror("send size < 0");
+			exit(0);
+		}
+		// 是否需要加
+		 memset(sendBuffer, 0, BUFFER_SIZE);
+	}
+	printf("out of the while  in  sendPicture()\n");
+	fclose(fp);
+
+	send(sockfd, "SENDFINISHED", strlen("SENDFINISHED"), 0);
+
+	printf("file transfer in UDP is closing");
+
+}
 
 
