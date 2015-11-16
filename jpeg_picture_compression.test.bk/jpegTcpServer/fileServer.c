@@ -8,7 +8,7 @@
 #include<stdlib.h>
 #include<string.h>
 
-#define SERVER_PORT    6666
+#define HELLO_WORLD_SERVER_PORT    6666
 #define LENGTH_OF_LISTEN_QUEUE     20
 #define BUFFER_SIZE                1024
 unsigned char 		 buffer[BUFFER_SIZE];
@@ -17,11 +17,6 @@ unsigned char 		 buffer[BUFFER_SIZE];
 int main(int argc, char **argv)
 {
 	
-	printf("the jpeg Server in going to work\n");
-
-	char filename[50];
-	memset(filename, 0, 50);
-	char  command [100] = "feh ";
 
 	// set socket's address information
 	// 设置一个socket地址结构[sockaddr_in]server_addr,代表服务器internet的地址和端口
@@ -29,7 +24,7 @@ int main(int argc, char **argv)
 	bzero(&server_addr, sizeof(server_addr));
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_addr.s_addr = htonl(INADDR_ANY);//bind to the free interface (NIC)
-	server_addr.sin_port = htons(SERVER_PORT);
+	server_addr.sin_port = htons(HELLO_WORLD_SERVER_PORT);
 
 	// create a stream socket
 	// 创建用于internet的流协议(TCP)socket，用server_socket代表服务器向客户端提供服务的接口
@@ -45,7 +40,7 @@ int main(int argc, char **argv)
 	{
 		//on fail [-1] will be returned
 		//on success [0] will be returned
-		printf("Server Bind Port: %d Failed!\n", SERVER_PORT);
+		printf("Server Bind Port: %d Failed!\n", HELLO_WORLD_SERVER_PORT);
 		exit(1);
 	}
 
@@ -79,8 +74,6 @@ int main(int argc, char **argv)
 		if ( NULL != strstr(buffer,"compress_") && receiveSize < 50 ){
 			printf("receive the file name \n");
 			fp = fopen(buffer,"wb");
-			memcpy(filename,buffer,receiveSize);
-			printf("FILE NAME :  %s\n", filename);
 		}else if(NULL != strstr(buffer,"SENDFINISHED") /* && receiveSize < 50 */ ){
 			printf("send file finished , break the while \n");
 			//printf("%s\n", buffer);
@@ -104,11 +97,6 @@ int main(int argc, char **argv)
 	if(receiveSize < 0) {
 		perror("received failed");
 	}
-
-	printf("before command : %s\n", command);
-	strcat(command, filename);
-	printf("after command : %s\n", command);
-	system(command);
 
 	fclose(fp);
 	close(connectSockfd);

@@ -26,21 +26,18 @@ int main(int argc, char *argv[]){
 	 * define  varible here
 	 * */
 
-	 printf("the jpeg Server[***UDP**] in going to work\n");
-	
-	
-	FILE 	*fp = NULL;
-	int  	receiveSize = 0 ;
-	int 	writeSize = 0;
-	int  	sockfd = 0;
-	struct sockaddr_in 	serverAddr,clientAddr;
-	int 	sockaddrLen = sizeof(clientAddr);
-	
-	unsigned char 		buffer[ BUFFER_SIZE ] ;	
+	 printf("udpserver file receive test\n");
 
-	char 	filename[50];
-	char  	command [100] = "feh ";
-	memset(filename, 0, 50);
+
+	unsigned char 		buffer[ BUFFER_SIZE ] ;
+	struct sockaddr_in 	serverAddr,clientAddr;
+	FILE *fp = NULL;
+	int  receiveSize = 0 ;
+	int  sockfd = 0;
+
+	int sockaddrLen = sizeof(clientAddr);
+	int writeSize = 0;
+
 
 	/*
 	* deal with input parameter
@@ -81,8 +78,6 @@ int main(int argc, char *argv[]){
 		if ( NULL != strstr(buffer,"compress_") && receiveSize < 50 ){
 			printf("receive the file name \n");
 			fp = fopen(buffer,"wb");
-			memcpy(filename, buffer, receiveSize);
-			printf("FILE NAME :  %s\n", filename);
 		}else if(NULL != strstr(buffer,"SENDFINISHED") /* && receiveSize < 50 */ ){
 			printf("send file finishe , break the while \n");
 			//printf("%s\n", buffer);
@@ -106,10 +101,6 @@ int main(int argc, char *argv[]){
 	if(receiveSize < 0) {
 		perror("received failed");
 	}
-
-	// open the receive file
-	strcat(command, filename);
-	system(command);
 
 	fclose(fp);
 	close(sockfd);
