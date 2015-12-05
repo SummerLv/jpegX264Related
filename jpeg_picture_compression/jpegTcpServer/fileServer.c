@@ -1,27 +1,28 @@
 ////////////////////////////////////////////////////////////////////////
 // file_server.c -- socket文件传输服务器端示例代码
 // /////////////////////////////////////////////////////////////////////
-#include<netinet/in.h>
-#include<sys/types.h>
-#include<sys/socket.h>
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#define SERVER_PORT    6666
+#define SERVER_PORT   			   6666
 #define LENGTH_OF_LISTEN_QUEUE     20
 #define BUFFER_SIZE                1024
-unsigned char 		 buffer[BUFFER_SIZE];
+
+unsigned char 					   buffer[BUFFER_SIZE];
 
 
 int main(int argc, char **argv)
 {
 	
-	printf("the jpeg Server in going to work\n");
+	printf("the jpeg Server[***TCP**] in going to work\n");
 
-	char filename[50];
+	char 	filename[50];
+	char  	command [100] = "feh ";
 	memset(filename, 0, 50);
-	char  command [100] = "feh ";
 
 	// set socket's address information
 	// 设置一个socket地址结构[sockaddr_in]server_addr,代表服务器internet的地址和端口
@@ -32,7 +33,7 @@ int main(int argc, char **argv)
 	server_addr.sin_port = htons(SERVER_PORT);
 
 	// create a stream socket
-	// 创建用于internet的流协议(TCP)socket，用server_socket代表服务器向客户端提供服务的接口
+	// 创建用于internet的流协议(TCP)socket，用sockfd代表服务器向客户端提供服务的接口
 	int sockfd = socket(PF_INET, SOCK_STREAM, 0);
 	if (sockfd< 0)
 	{
@@ -79,7 +80,7 @@ int main(int argc, char **argv)
 		if ( NULL != strstr(buffer,"compress_") && receiveSize < 50 ){
 			printf("receive the file name \n");
 			fp = fopen(buffer,"wb");
-			memcpy(filename,buffer,receiveSize);
+			memcpy(filename, buffer, receiveSize);
 			printf("FILE NAME :  %s\n", filename);
 		}else if(NULL != strstr(buffer,"SENDFINISHED") /* && receiveSize < 50 */ ){
 			printf("send file finished , break the while \n");
